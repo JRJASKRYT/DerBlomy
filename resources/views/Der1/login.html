@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso al Sistema - DERBLOMY</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 450px;
+            padding: 2.5rem;
+        }
+        .btn-panel {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: 500;
+        }
+        .btn-panel:hover {
+            background-color: #0b5ed7;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card text-center">
+        <h2 class="fw-bold mb-1 text-dark">Acceso al Sistema</h2>
+        <h3 class="fw-bold text-dark mb-4">⭐DERBLOMY⭐</h3>
+        
+        <div id="login-alert" class="alert alert-danger d-none small p-2 rounded-3"></div>
+
+        <form id="formLogin" class="text-start mb-4">
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-dark"><i class="bi bi-card-text me-1"></i> Cédula de Identidad (CI):</label>
+                <input type="text" id="usuario_ci" class="form-control py-2" placeholder="Ej. 1234567 LP" required>
+            </div>
+            <button type="submit" class="btn btn-panel w-100 py-2 rounded-3">Ingresar al Panel</button>
+        </form>
+
+        <hr class="text-muted my-4">
+
+        <div class="text-start">
+            <p class="text-muted text-center small fw-bold mb-2"><i class="bi bi-lock-fill me-1"></i> Área de Registro Protegida</p>
+            <form id="formAdmin" class="input-group">
+                <input type="password" id="clave_maestra" class="form-control form-control-sm" placeholder="Introduce la Clave Maestra" required>
+                <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-arrow-right-short"></i> Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Login por CI
+        document.getElementById('formLogin').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const ci = document.getElementById('usuario_ci').value.trim();
+            const alertDiv = document.getElementById('login-alert');
+            alertDiv.classList.add('d-none');
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ usuario_ci: ci })
+                });
+                const res = await response.json();
+
+                if (response.ok && res.success) {
+    localStorage.clear();
+    localStorage.setItem('usuario', JSON.stringify(res.user));
+    // Nos aseguramos de ir a inicio.html dentro de Der1
+    window.location.assign('./inicio.html');
+} else {
+                    alertDiv.textContent = res.message || 'La Cédula introducida no existe.';
+                    alertDiv.classList.remove('d-none');
+                }
+            } catch (err) {
+                alertDiv.textContent = 'Error: El servidor backend Laravel está apagado.';
+                alertDiv.classList.remove('d-none');
+            }
+        });
+
+        // Ingreso Directo a Registro con Clave Maestra
+        document.getElementById('formAdmin').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const clave = document.getElementById('clave_maestra').value;
+            if (clave === 'admin123') { 
+    localStorage.setItem('admin_auth', 'true');
+    window.location.assign('./crear-usuario.html');
+} else {
+                alert('Clave Maestra Incorrecta');
+            }
+        });
+    </script>
+</body>
+</html>

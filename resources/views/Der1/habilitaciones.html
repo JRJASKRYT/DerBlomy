@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mis Habilitaciones y Accesos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .sidebar { background-color: #1e2229; min-height: 100vh; width: 240px; position: fixed; }
+        .main-content { margin-left: 240px; padding: 2.5rem; }
+        .nav-link-custom { color: #a0aec0; padding: 0.75rem 1rem; display: block; text-decoration: none; border-radius: 8px; margin-bottom: 0.5rem; }
+        .nav-link-custom:hover, .nav-link-custom.active { background-color: #0d6efd; color: white; }
+        .card-header-dark { background-color: #212529; color: white; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex">
+        <div class="sidebar p-3 d-flex flex-column">
+            <div class="text-center my-4 text-white">
+                <div class="bg-primary d-inline-flex p-3 rounded-circle mb-2"><i class="bi bi-person-fill fs-3"></i></div>
+                <h6 class="fw-bold" id="sidebar-user-name">Cargando...</h6>
+            </div>
+            <nav>
+                    <a href="./inicio.html" class="nav-link-custom"><i class="bi bi-house-door-fill me-2"></i> Inicio</a>
+                    <a href="./tramites.html" class="nav-link-custom"><i class="bi bi-file-earmark-text-fill me-2"></i> Mis Trámites</a>
+                    <a href="./conexiones.html" class="nav-link-custom"><i class="bi bi-diagram-3-fill me-2"></i> Mis Conexiones</a>
+                    <a href="./habilitaciones.html" class="nav-link-custom active"><i class="bi bi-shield-lock-fill me-2"></i> Mis Habilitaciones</a>
+                    <a href="./recursos.html" class="nav-link-custom "><i class="bi bi-archive-fill me-2"></i> Recursos Propios</a>
+                </nav>
+        </div>
+
+        <div class="main-content flex-grow-1">
+            <div class="card p-4 shadow-sm border-0 mb-4">
+                <h3 class="fw-bold"><i class="bi bi-shield-check text-primary me-2"></i> Control de Habilitaciones</h3>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header card-header-dark py-3">Matriz de Permisos</div>
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary small">
+                            <tr>
+                                <th class="ps-4">ID</th>
+                                <th>Módulo</th>
+                                <th>Acceso</th>
+                                <th>Estado</th>
+                                <th class="text-end pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-habilitaciones-cuerpo"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditar" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Editar Habilitación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-id">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nivel de Acceso</label>
+                        <input type="text" id="edit-acceso" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="guardarCambios()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const user = JSON.parse(localStorage.getItem('usuario'));
+        let modalEdicion = new bootstrap.Modal(document.getElementById('modalEditar'));
+
+        async function cargarHabilitaciones() {
+            const res = await fetch(`http://127.0.0.1:8000/api/habilitaciones/${user.ci}`);
+            const data = await res.json();
+            const tbody = document.getElementById('tabla-habilitaciones-cuerpo');
+            tbody.innerHTML = '';
+
+            data.habilitaciones.forEach(hab => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="ps-4 text-muted">#${hab.id}</td>
+                        <td class="fw-bold">${hab.modulo}</td>
+                        <td>${hab.tipo_acceso}</td>
+                        <td><span class="badge ${hab.estado === 'activo' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}">${hab.estado}</span></td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="abrirModal(${hab.id}, '${hab.tipo_acceso}')"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminar(${hab.id})"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function abrirModal(id, acceso) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-acceso').value = acceso;
+            modalEdicion.show();
+        }
+
+        async function guardarCambios() {
+            const id = document.getElementById('edit-id').value;
+            await fetch(`http://127.0.0.1:8000/api/habilitaciones/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ tipo_acceso: document.getElementById('edit-acceso').value })
+            });
+            modalEdicion.hide();
+            cargarHabilitaciones();
+        }
+
+        async function eliminar(id) {
+            if (!confirm('¿Eliminar habilitación?')) return;
+            await fetch(`http://127.0.0.1:8000/api/habilitaciones/${id}`, { method: 'DELETE' });
+            cargarHabilitaciones();
+        }
+
+        window.onload = cargarHabilitaciones;
+    </script>
+</body>
+</html>
